@@ -76,7 +76,7 @@ int main (int argc, char * argv[]) {
     memcpy(&currentList, &clientList, sizeof(clientList));
     //currentList = clientList;
 
-    connectionAttempt = select(clientCount + 1, &currentList, NULL, NULL, /*waitTime*/NULL);
+    connectionAttempt = select(connectionLimit + 1, &currentList, NULL, NULL, /*waitTime*/NULL);
 
     if(FD_ISSET(serverSocket, &currentList)) {
       if ((connectionSocket[clientCount+1] = accept(serverSocket, (struct sockaddr*)&hostAddress, &hostAddLen)) < 0) { 
@@ -85,7 +85,7 @@ int main (int argc, char * argv[]) {
       } else {
         clientCount++;
         FD_SET(connectionSocket[clientCount], &clientList);
-        printf("Client %i connected successfully", clientCount);
+        printf("Client %i connected successfully\n", connectionSocket[clientCount]);
       }
 
       //TODO: Communicate to other clients a new client connected to the server.
@@ -95,6 +95,7 @@ int main (int argc, char * argv[]) {
         if (FD_ISSET(connectionSocket[i], &currentList)) {
           if ((readMessage = read(connectionSocket[i], outgoing, maxMessageLength + 1)) == 0) {
             int disconnectedPeer = getpeername(connectionSocket[i], (struct sockaddr*)&hostAddress, &hostAddLen);
+            printf("Client Disconnected.\n");
             FD_CLR(connectionSocket[i], &clientList);
             close(connectionSocket[i]);
             connectionSocket[i] = 0;
@@ -115,17 +116,21 @@ int main (int argc, char * argv[]) {
             }
           } else {
             outgoing[readMessage] = '\0';
-            printf("Message Recieved: %s", outgoing);
             outgoing = realloc(outgoing, readMessage+1); //lmao don't dump memory that doesn't contain the message
+            printf("Message Recieved: %s", outgoing);
             for (int j = 0; j < connectionLimit; j++) {
-              send(connectionSocket[j], outgoing, strlen(outgoing), 0);
+              if ((send(connectionSocket[j], outgoing, strlen(outgoing), 0)) < 0) {
+                printf("message failed to send to client: %i\n", connectionSocket[j]);
+              } else {
+                printf("message sent to client: %i\n", connectionSocket[j]);
+              }
             }
             outgoing = realloc(outgoing, maxMessageLength+1); //Re-expand buffer
           }
         }
       }
     }
-    printf("listening cycle ended.\n");
+    //printf("listening cycle ended.\n");
   }
 
   close(serverSocket);

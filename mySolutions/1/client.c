@@ -49,6 +49,7 @@ int main (int argc, char * argv[]) {
   }
 
   fd_set clientList;
+  fd_set currentList;
   FD_ZERO(&clientList);
   FD_SET(clientSocket, &clientList);
   FD_SET(fileno(stdin), &clientList);
@@ -58,16 +59,20 @@ int main (int argc, char * argv[]) {
   waitTime.tv_usec = 0;
 
   while(!kill) {
-    connectionAttempt = select(clientCount + 1, &clientList, NULL, NULL, /*waitTime*/NULL);
+    FD_ZERO(&currentList);
+    memcpy(&currentList, &clientList, sizeof(clientList));
 
-    if (FD_ISSET(clientSocket, &clientList)) {
+    connectionAttempt = select(clientCount + 1, &currentList, NULL, NULL, /*waitTime*/NULL);
+
+    if (FD_ISSET(clientSocket, &currentList)) {
+      printf("incoming communications");
       if ((readMessage = read(clientSocket, message, maxMessageLength + 1)) == 0) {
         printf("Server offline");
         kill = true;
       } else {
         printf("%s\n", message);
       }
-    } else if (FD_ISSET(fileno(stdin), &clientList)) {
+    } else if (FD_ISSET(fileno(stdin), &currentList)) {
       if((readMessage = read(fileno(stdin), message, maxMessageLength + 1)) == 0) {
         //Not sure what this case is
       } else {
@@ -75,7 +80,7 @@ int main (int argc, char * argv[]) {
         message = realloc(message, readMessage+1);
         send(clientSocket, message, strlen(message), 0);
         message = realloc(message, maxMessageLength + 1);
-        printf("message sent\n");
+        //printf("message sent\n");
       }
     } else {
       perror("Invalid connection attempt?");
