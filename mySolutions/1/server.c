@@ -7,6 +7,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <sys/select.h>
+//#include <sys/time.h>
 
 #define PORT 8080
 
@@ -54,7 +55,9 @@ int main (int argc, char * argv[]) {
   } 
 
   fd_set clientList;
+  fd_set currentList;
   FD_ZERO(&clientList);
+  //FD_ZERO(&currentList);
   FD_SET(serverSocket, &clientList);
 
   struct timeval waitTime;
@@ -68,10 +71,14 @@ int main (int argc, char * argv[]) {
     //     //clientCount++;
     //   }
     // }
+    FD_ZERO(&currentList);
+    //FD_COPY(&clientList, &currentList);
+    memcpy(&currentList, &clientList, sizeof(clientList));
+    //currentList = clientList;
 
-    connectionAttempt = select(clientCount + 1, &clientList, NULL, NULL, /*waitTime*/NULL);
+    connectionAttempt = select(clientCount + 1, &currentList, NULL, NULL, /*waitTime*/NULL);
 
-    if(FD_ISSET(serverSocket, &clientList)) {
+    if(FD_ISSET(serverSocket, &currentList)) {
       if ((connectionSocket[clientCount+1] = accept(serverSocket, (struct sockaddr*)&hostAddress, &hostAddLen)) < 0) { 
         perror("failed to connect to new client");
         exit(EXIT_FAILURE);
@@ -85,7 +92,7 @@ int main (int argc, char * argv[]) {
 
     } else {
       for (int i = 0; i < connectionLimit; i++) {
-        if (FD_ISSET(connectionSocket[i], &clientList)) {
+        if (FD_ISSET(connectionSocket[i], &currentList)) {
           if ((readMessage = read(connectionSocket[i], outgoing, maxMessageLength + 1)) == 0) {
             int disconnectedPeer = getpeername(connectionSocket[i], (struct sockaddr*)&hostAddress, &hostAddLen);
             FD_CLR(connectionSocket[i], &clientList);
