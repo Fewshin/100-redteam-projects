@@ -95,7 +95,7 @@ int main (int argc, char * argv[]) {
         if (FD_ISSET(connectionSocket[i], &currentList)) {
           if ((readMessage = read(connectionSocket[i], outgoing, maxMessageLength + 1)) == 0) {
             int disconnectedPeer = getpeername(connectionSocket[i], (struct sockaddr*)&hostAddress, &hostAddLen);
-            printf("Client Disconnected.\n");
+            printf("Client %i Disconnected.\n", connectionSocket[i]);
             FD_CLR(connectionSocket[i], &clientList);
             close(connectionSocket[i]);
             connectionSocket[i] = 0;

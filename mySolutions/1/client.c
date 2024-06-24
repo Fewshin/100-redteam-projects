@@ -62,12 +62,12 @@ int main (int argc, char * argv[]) {
     FD_ZERO(&currentList);
     memcpy(&currentList, &clientList, sizeof(clientList));
 
-    connectionAttempt = select(clientCount + 1, &currentList, NULL, NULL, /*waitTime*/NULL);
+    connectionAttempt = select(20, &currentList, NULL, NULL, /*waitTime*/NULL);
 
     if (FD_ISSET(clientSocket, &currentList)) {
-      printf("incoming communications");
+      //printf("incoming communications\n");
       if ((readMessage = read(clientSocket, message, maxMessageLength + 1)) == 0) {
-        printf("Server offline");
+        printf("Server offline\n");
         kill = true;
       } else {
         printf("%s\n", message);
@@ -76,6 +76,7 @@ int main (int argc, char * argv[]) {
       if((readMessage = read(fileno(stdin), message, maxMessageLength + 1)) == 0) {
         //Not sure what this case is
       } else {
+        //fflush(stdin);
         message[readMessage] = '\0';
         message = realloc(message, readMessage+1);
         send(clientSocket, message, strlen(message), 0);
